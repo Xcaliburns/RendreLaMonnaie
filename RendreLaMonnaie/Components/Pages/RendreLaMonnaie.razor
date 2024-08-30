@@ -1,0 +1,130 @@
+﻿@page "/RendreLaMonnaie"
+@rendermode InteractiveServer
+
+<PageTitle>Rendre La Monnaie</PageTitle>
+
+<div class="container mt-5">
+    <h1 class="text-center">Rendre la monnaie</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <p><strong>Montant à payer:</strong> @montantAPayer €</p>
+                    <p><strong>Montant donné:</strong> @montantDonne €</p>
+                    <p><strong>Monnaie à rendre:</strong> @montantARendreUtilisateur €</p>
+
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-primary" @onclick="VerifierMonnaie">Vérifier</button>
+                        <button class="btn btn-secondary" @onclick="Recommencer">Recommencer</button>
+                    </div>
+
+                    <p class="mt-3">@message</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6 offset-md-3">
+            <h2 class="text-center">Ajouter ou retirer des pièces et billets</h2>
+            @foreach (var pieceOuBillet in piecesEtBillets)
+            {
+                <div class="d-flex justify-content-between align-items-center my-2">
+                    <button class="btn btn-danger" @onclick="() => ModifierQuantite(pieceOuBillet.Key, -1)">-</button>
+                    <span>@pieceOuBillet.Value: @quantites[pieceOuBillet.Key]</span>
+                    <button class="btn btn-success" @onclick="() => ModifierQuantite(pieceOuBillet.Key, 1)">+</button>
+                </div>
+            }
+
+            <p class="text-center mt-3"><strong>Total des pièces et billets:</strong> @totalPiecesEtBillets €</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private decimal montantAPayer;
+    private int montantDonne;
+    private decimal montantARendreUtilisateur;
+    private string message;
+
+    private Dictionary<decimal, string> piecesEtBillets = new Dictionary<decimal, string>
+    {
+        { 10.00m, "billet de 10 euros" },
+        { 5.00m, "billet de 5 euros" },
+        { 2.00m, "pièce de 2 euros" },
+        { 1.00m, "pièce de 1 euro" },
+        { 0.50m, "pièce de 50 centimes" },
+        { 0.20m, "pièce de 20 centimes" },
+        { 0.10m, "pièce de 10 centimes" },
+        { 0.05m, "pièce de 5 centimes" },
+        { 0.02m, "pièce de 2 centimes" },
+        { 0.01m, "pièce de 1 centime" }
+    };
+
+    private Dictionary<decimal, int> quantites = new Dictionary<decimal, int>();
+
+    private decimal totalPiecesEtBillets;
+
+    protected override void OnInitialized()
+    {
+        GenererMontants();
+        InitialiserQuantites();
+    }
+
+    private void GenererMontants()
+    {
+        var random = new Random();
+        montantAPayer = Math.Round((decimal)(random.Next(1, 20) + random.NextDouble()), 2); // Montant à payer avec des cents
+        montantDonne = random.Next((int)Math.Ceiling(montantAPayer), 21); // Montant donné sans cents, au maximum 100 euros
+    }
+
+    private void InitialiserQuantites()
+    {
+        foreach (var pieceOuBillet in piecesEtBillets.Keys)
+        {
+            quantites[pieceOuBillet] = 0;
+        }
+        CalculerTotalPiecesEtBillets();
+    }
+
+    private void ModifierQuantite(decimal valeur, int changement)
+    {
+        if (quantites.ContainsKey(valeur))
+        {
+            quantites[valeur] = Math.Max(0, quantites[valeur] + changement);
+            CalculerTotalPiecesEtBillets();
+        }
+    }
+
+    private void CalculerTotalPiecesEtBillets()
+    {
+        totalPiecesEtBillets = quantites.Sum(q => q.Key * q.Value);
+        montantARendreUtilisateur = totalPiecesEtBillets;
+    }
+
+    private void VerifierMonnaie()
+    {
+        var monnaieARendre = montantDonne - montantAPayer;
+        if (montantARendreUtilisateur == monnaieARendre)
+        {
+            message = "Correct! La monnaie à rendre est " + monnaieARendre + " €";
+        }
+        if (montantARendreUtilisateur > monnaieARendre)
+        {
+            message = "Tu as trop donné , il ya un trou dans la caisse";
+        }
+        if (montantARendreUtilisateur < monnaieARendre)
+        {
+            message = "Tu as pas donné assez, il manque de la monnaie le client n'est pas content";
+        }
+    }
+
+    private void Recommencer()
+    {
+        GenererMontants();
+        InitialiserQuantites();
+        montantARendreUtilisateur = 0;
+        message = string.Empty;
+    }
+}
